@@ -181,7 +181,7 @@ void RtmpServer::RecvData(Client* client) {
 		throw std::runtime_error(std::string("unable to read from a client: ") + strerror(errno));
 	}
     client->buf.append(chunk, 0, len);
-    std::cout << chunk << std::endl;
+    //std::cout << len << ": "<< chunk << std::endl;
     while (!client->buf.empty()) {
         uint8_t flags = client->buf[0];
         size_t header_len = HEADER_LENGTH[flags >> 6];
@@ -247,6 +247,30 @@ void RtmpServer::RecvData(Client* client) {
 void RtmpServer::HandleMessage(Client*, RtmpMessage* msg) {
     printf("RTMP message %02x, len %zu, timestamp %ld\n", msg->type, msg->len,
 		msg->timestamp);
+
+    // 处理接收到得到完整的包
+    size_t pos = 0;
+    switch(msg->type) {
+        case MSG_BYTES_READ:
+            break;
+        case MSG_SET_CHUNK_SIZE:
+            break;
+        case MSG_INVOKE:
+            break;
+        case MSG_INVOKE3:
+            break;
+        case MSG_NOTIFY:
+            break;
+        case MSG_AUDIO:
+            break;
+        case MSG_VIDEO:
+            break;
+        case MSG_FLASH_VIDEO:
+            break;
+        default:
+            fprintf(stderr, "unhandled message: %02x\n", msg->type);
+            break;
+    }
 }
 
 void RtmpServer::DoHandShark(Client* client) {

@@ -58,3 +58,21 @@ struct Client {
     uint32_t written_seq;
     uint32_t read_seq;
 };
+
+enum RtmpMessageType{
+    MSG_SET_CHUNK_SIZE=0x01,
+    MSG_ABORT,
+    MSG_BYTES_READ,
+    MSG_USER_CONTROL,
+    MSG_WINDOWS_SIZE,
+    MSG_SET_PEER_BAND_WIDTH,
+    //Audio or video message
+    MSG_AUDIO = 0x08,
+    MSG_VIDEO,
+    //Obeject message
+    MSG_INVOKE3 = 0x11, /* AMF3 */
+    MSG_NOTIFY,
+    MSG_OBJECT,
+    MSG_INVOKE,     /* AMF0 */
+    MSG_FLASH_VIDEO = 0x16,
+};
