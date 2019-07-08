@@ -19,6 +19,10 @@ private:
     void SendData(Client* client);
     void RecvData(Client* client);
     void HandleMessage(Client*, RtmpMessage* msg);
+    void DoHandShark(Client* client);
+
+    size_t SendAll(int fd, const void* buf, size_t len);
+    size_t RecvAll(int fd, void* buf, size_t len);
 
     int listen_fd_;
     int port_;

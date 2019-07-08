@@ -48,3 +48,11 @@ void SetLittleEndian32(void *p, uint32_t val)
 	data[2] = val >> 16;
 	data[3] = val >> 24;
 }
+
+void PrintfAll(void *p, size_t len) {
+	char* pos = (char*)p;
+	for(int i=0; i< len; i++) {
+		printf("%02x", pos[i]);
+	}
+	printf("\n");
+}

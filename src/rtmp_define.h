@@ -30,6 +30,23 @@ struct RtmpMessage {
 	std::string buf;
 };
 
+// 三次握手
+// c0c1------->>
+// <<-----------s0s1s2
+// c2--------->>
+#define HANDSHAKE_PLAINTEXT 0x03
+struct RtmpHandSharkServer {
+    uint8_t c0;
+    char c1[1536];
+    char c2[1536];
+};
+
+struct RtmpHandSharkClient {
+    uint8_t s0;
+    char s1[1536];
+    char s2[1536];
+};
+
 struct Client {
     int fd;
     bool pullStream;    //是否拉流

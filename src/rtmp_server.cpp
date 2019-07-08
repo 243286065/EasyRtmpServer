@@ -98,6 +98,7 @@ void RtmpServer::DoEpollHandler() {
                 if(epoll_ctl(epollfd_, EPOLL_CTL_ADD, nfd, &ev)<0) {
                     throw std::runtime_error(std::string("Unable to EPOLL_CTL_ADD, error:") + strerror(errno));
                 }
+                set_nonblock(nfd, true);
                 Client* client = new Client;
                 client->fd = nfd;
                 client->pullStream = false;
@@ -109,6 +110,14 @@ void RtmpServer::DoEpollHandler() {
                     client->messages[i].timestamp = 0;
                     client->messages[i].len = 0;
                 }
+
+                // 进行握手
+                try{
+                    DoHandShark(client);
+                }catch(const std::runtime_error &e) {
+                    std::cout << "Handshark failed: " << e.what() << std::endl;
+                }
+
                 clients_.insert(std::pair<int, Client*>(nfd, client));
             } else if(evClients[i].events & EPOLLRDHUP){
                 // 对端断开
@@ -118,6 +127,7 @@ void RtmpServer::DoEpollHandler() {
                 }
                 close(fd);
                 if(clients_.find(fd) != clients_.end()) {
+                    delete clients_[fd];
                     clients_.erase(fd);
                 }
             } else {
@@ -237,4 +247,76 @@ void RtmpServer::RecvData(Client* client) {
 void RtmpServer::HandleMessage(Client*, RtmpMessage* msg) {
     printf("RTMP message %02x, len %zu, timestamp %ld\n", msg->type, msg->len,
 		msg->timestamp);
+}
+
+void RtmpServer::DoHandShark(Client* client) {
+    RtmpHandSharkServer handshark1st = {0};
+    RtmpHandSharkClient handshark2nd = {0};
+
+    //接收c0+c1
+    size_t len = sizeof(handshark1st.c0) + sizeof(handshark1st.c1);
+    if(RecvAll(client->fd, (void*)&handshark1st, len) < len) {
+        return;
+    }
+
+    //PrintfAll((void*)&handshark1st, len);
+    if(handshark1st.c0 != HANDSHAKE_PLAINTEXT) {
+        throw std::runtime_error("only plaintext handshake supported");
+    }
+
+    //发送s0+s1+s2
+    //s2是c1的回显
+    handshark2nd.s0 = HANDSHAKE_PLAINTEXT;
+    char* pos = (char*)&handshark2nd.s1 + 8;
+    for(int i=8;i < sizeof(handshark2nd.s1);i++ ) {
+        pos[i] = rand();
+    }
+    memcpy(&handshark2nd.s2, handshark1st.c1, sizeof(handshark2nd.s2));
+    len = sizeof(handshark2nd);
+    if(SendAll(client->fd, &handshark2nd, len) < len) {
+        return;
+    }
+    //PrintfAll((void*)&handshark2nd, len);
+
+    //接收c2
+    //c2是s1的回显
+    len = sizeof(handshark1st.c2);
+    if(RecvAll(client->fd, (void*)&handshark1st.c2, len) < len) {
+        return;
+    }
+    //PrintfAll((void*)&handshark1st.c2, sizeof(handshark1st.c2));
+}
+
+size_t RtmpServer::SendAll(int fd, const void* buf, size_t len) {
+    size_t pos = 0;
+    while(pos<len) {
+        ssize_t written = send(fd, (const char *)buf+pos, len-pos, 0);
+        if(written < 0) {
+            if(errno == EAGAIN || errno == EINTR)
+                continue;
+            throw std::runtime_error(std::string("Unable to send: ") + strerror(errno));
+        } else if (written == 0) {
+            //对端断开
+            break;
+        } else {
+            pos += written;
+        } 
+    }
+    return pos;
+}
+
+size_t RtmpServer::RecvAll(int fd, void* buf, size_t len) {
+    size_t pos = 0;
+	while (pos < len) {
+		ssize_t bytes = recv(fd, (char *) buf + pos, len - pos, 0);
+		if (bytes < 0) {
+			if (errno == EAGAIN || errno == EINTR)
+				continue;
+			throw std::runtime_error(std::string("Unable to recv: ") + strerror(errno));
+		}
+		if (bytes == 0)
+			break;
+		pos += bytes;
+	}
+	return pos;
 }

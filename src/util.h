@@ -24,3 +24,6 @@ extern void SetBigEndian24(void *p, uint32_t val);
 
 // 将uint32_t表示成小端32位
 void SetLittleEndian32(void *p, uint32_t val);
+
+//按byte输出
+void PrintfAll(void *p, size_t len);
